@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Smart To-Do Manager</title>
+<style>
+:root {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --accent: #38bdf8;
+    --text: #e5e7eb;
+    --muted: #94a3b8;
+    --done: #22c55e;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: system-ui, sans-serif;
+}
+
+body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    justify-content: center;
+    padding: 40px;
+}
+
+.app {
+    width: 100%;
+    max-width: 750px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.list-selector {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.list-selector input,
+.list-selector button {
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+}
+
+.list-selector input {
+    flex: 1;
+}
+
+.list-selector button {
+    background: var(--accent);
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.task-form {
+    display: grid;
+    grid-template-columns: 1fr 160px 120px auto;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.task-form input, .task-form button {
+    padding: 10px;
+    border-radius: 6px;
+    border: none;
+}
+
+.task-form button {
+    background: var(--accent);
+    cursor: pointer;
+}
+
+.tasks {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.task {
+    background: var(--card);
+    padding: 15px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.task.completed {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.task span {
+    flex: 1;
+}
+
+.task small {
+    color: var(--muted);
+}
+
+.task button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--accent);
+}
+
+.task button.delete {
+    color: #ef4444;
+}
+
+@media (max-width: 600px) {
+    .task-form {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+    <h1>Smart To-Do Manager</h1>
+
+    <div class="list-selector">
+        <input id="listName" placeholder="Create or switch list (e.g. Work)">
+        <button onclick="switchList()">Use List</button>
+    </div>
+
+    <div class="task-form">
+        <input id="taskText" placeholder="New task">
+        <input type="date" id="taskDate">
+        <input type="time" id="taskTime">
+        <button onclick="addTask()">Add</button>
+    </div>
+
+    <div class="tasks" id="tasks"></div>
+</div>
+
+<script>
+let lists = JSON.parse(localStorage.getItem("todoLists")) || {};
+let currentList = null;
+
+function save() {
+    localStorage.setItem("todoLists", JSON.stringify(lists));
+}
+
+function switchList() {
+    const name = document.getElementById("listName").value.trim();
+    if (!name) return;
+
+    currentList = name;
+    if (!lists[name]) lists[name] = [];
+    render();
+}
+
+function addTask() {
+    if (!currentList) return alert("Select a list first");
+
+    const text = taskText.value.trim();
+    if (!text) return;
+
+    lists[currentList].push({
+        id: Date.now(),
+        text,
+        date: taskDate.value,
+        time: taskTime.value,
+        done: false
+    });
+
+    taskText.value = "";
+    taskDate.value = "";
+    taskTime.value = "";
+    save();
+    render();
+}
+
+function toggle(id) {
+    const task = lists[currentList].find(t => t.id === id);
+    task.done = !task.done;
+    save();
+    render();
+}
+
+function edit(id) {
+    const task = lists[currentList].find(t => t.id === id);
+    const updated = prompt("Edit task", task.text);
+    if (updated !== null) {
+        task.text = updated.trim();
+        save();
+        render();
+    }
+}
+
+function removeTask(id) {
+    lists[currentList] = lists[currentList].filter(t => t.id !== id);
+    save();
+    render();
+}
+
+function render() {
+    const container = document.getElementById("tasks");
+    container.innerHTML = "";
+
+    if (!currentList) return;
+
+    lists[currentList].forEach(task => {
+        const div = document.createElement("div");
+        div.className = "task" + (task.done ? " completed" : "");
+
+        div.innerHTML = `
+            <input type="checkbox" ${task.done ? "checked" : ""} onchange="toggle(${task.id})">
+            <span>${task.text}</span>
+            <small>${task.date || ""} ${task.time || ""}</small>
+            <button onclick="edit(${task.id})">✏️</button>
+            <button class="delete" onclick="removeTask(${task.id})">🗑️</button>
+        `;
+
+        container.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>
